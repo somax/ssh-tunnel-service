@@ -22,6 +22,18 @@ read -p "SSH Port: "  SSH_PORT
 read -p "SSH Tunnel Username: "  SSH_TUNNEL_USERNAME
 read -p "SSH Tunnel Host: "  SSH_TUNNEL_HOST
 
+
+read -p "Is Reverse Tunnel? (y/n): "  IS_REVERSE
+
+if [ "$IS_REVERSE" == "y" ]; then
+
+  read -p "Proxy Port: "  PROXY_PORT
+  read -p "Target Host: "  TARGET_HOST
+  read -p "Target Port: "  TARGET_PORT
+
+fi
+
+
 # Remove the current conf
 rm "$(pwd)/$SERVICE_NAME.conf"
 
@@ -30,7 +42,13 @@ touch "$(pwd)/$SERVICE_NAME.conf"
 
 # Write the settings to the conf file
 echo "[Service]" >> "$(pwd)/$SERVICE_NAME.conf"
-echo "ExecStart=/bin/sh -c \"/usr/bin/ssh -N -D $SSH_PORT -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY $SSH_TUNNEL_USERNAME@$SSH_TUNNEL_HOST &\"" >> "$(pwd)/$SERVICE_NAME.conf"
+
+if [ "$IS_REVERSE" == "y" ]; then
+  echo "ExecStart=/bin/sh -c \"/usr/bin/ssh -NR $PROXY_PORT:$TARGET_HOST:$TARGET_PORT -p $SSH_PORT -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY $SSH_TUNNEL_USERNAME@$SSH_TUNNEL_HOST &\"" >> "$(pwd)/$SERVICE_NAME.conf"
+else
+  echo "ExecStart=/bin/sh -c \"/usr/bin/ssh -N -D $SSH_PORT -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY $SSH_TUNNEL_USERNAME@$SSH_TUNNEL_HOST &\"" >> "$(pwd)/$SERVICE_NAME.conf"
+fi
+
 echo "ExecStop=/bin/kill \$(pgrep -f $SSH_TUNNEL_USERNAME@$SSH_TUNNEL_HOST)" >> "$(pwd)/$SERVICE_NAME.conf"
 
 # Copy the service
